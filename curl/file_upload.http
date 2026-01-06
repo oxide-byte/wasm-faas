@@ -1,0 +1,9 @@
+POST http://localhost:3000/file/faas-modules/fibonacci_faas.wasm
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="file"; filename="fibonacci_faas.wasm"
+Content-Type: application/wasm
+
+< ../target/wasm32-wasip1/release/faas_exec.wasm
+--WebAppBoundary--
