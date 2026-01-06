@@ -1,5 +1,7 @@
 package local:faas;
 
 world faas-exec {
+    import wasi:cli/stdout;
+    
     export exec: func(input: string) -> string;
 }

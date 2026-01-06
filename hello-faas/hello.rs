@@ -1,6 +1,7 @@
 wit_bindgen::generate!({
     world: "faas-exec",
     path: "../wit",
+    generate_all,
 });
 
 struct GuestImpl;
@@ -10,6 +11,7 @@ impl Guest for GuestImpl {
         let input: Input = serde_json::from_str(&input).unwrap();
         let greetings = format!("Hello {}, how are you?", input.name);
         let output = Output { result: greetings };
+        println!("--- Test output ---");
         serde_json::to_string(&output).unwrap()
     }
 }

@@ -33,7 +33,7 @@ fn test_file_valid() -> Result<(), Box<dyn std::error::Error>> {
     config.wasm_component_model(true);
     let engine = Engine::new(&config)?;
 
-    let wasm_path = "../target/wasm32-wasip1/release/fibonacci_faas.wasm";
+    let wasm_path = "../target/wasm32-wasip1/release/hello_faas.wasm";
     let wasm_bytes = fs::read(wasm_path)?;
     println!("Read {} bytes from {}", wasm_bytes.len(), wasm_path);
 
@@ -78,7 +78,7 @@ async fn test_exec_local_valid() -> Result<(), Box<dyn std::error::Error>> {
     config.async_support(false);
     let engine = Engine::new(&config)?;
 
-    let wasm_path = "../target/wasm32-wasip1/release/fibonacci_faas.wasm";
+    let wasm_path = "../target/wasm32-wasip1/release/hello_faas.wasm";
     let wasm_bytes = fs::read(wasm_path)?;
     
     let component = Component::from_binary(&engine, &wasm_bytes)?;
@@ -96,15 +96,18 @@ async fn test_exec_local_valid() -> Result<(), Box<dyn std::error::Error>> {
 
     let bindings = FaasExec::instantiate(&mut store, &component, &linker)?;
 
-    let input = json!({ "n": 10 });
+    let input = json!({ "name": "James" });
     let input_str = serde_json::to_string(&input)?;
 
-    let output_str = bindings.call_exec(&mut store, &input_str)?;
+    let output_str = tokio::task::spawn_blocking(move || {
+        bindings.call_exec(&mut store, &input_str)
+    })
+    .await??;
     let output: serde_json::Value = serde_json::from_str(&output_str)?;
 
     println!("Output: {}", output);
 
-    assert_eq!(output["result"], 144);
+    assert_eq!(output["result"], "Hello James, how are you?");
 
     Ok(())
 }
@@ -144,7 +147,10 @@ async fn test_exec_remote_valid() -> Result<(), Box<dyn std::error::Error>> {
     let input = json!({ "n": 10 });
     let input_str = serde_json::to_string(&input)?;
 
-    let output_str = bindings.call_exec(&mut store, &input_str)?;
+    let output_str = tokio::task::spawn_blocking(move || {
+        bindings.call_exec(&mut store, &input_str)
+    })
+    .await??;
     let output: serde_json::Value = serde_json::from_str(&output_str)?;
 
     println!("Output: {}", output);

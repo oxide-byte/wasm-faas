@@ -1,6 +1,7 @@
 wit_bindgen::generate!({
     world: "faas-exec",
     path: "../wit",
+    generate_all,
 });
 
 struct GuestImpl;

@@ -69,7 +69,11 @@ pub async fn exec_wasm(
     let input_json =
         serde_json::to_string(&payload).map_err(|e| AppError::Internal(e.to_string()))?;
 
-    let output_json_str = bindings.call_exec(&mut store, &input_json)?;
+    let output_json_str = tokio::task::spawn_blocking(move || {
+        bindings.call_exec(&mut store, &input_json)
+    })
+    .await
+    .map_err(|e| AppError::Internal(e.to_string()))??;
 
     let output_json: serde_json::Value =
         serde_json::from_str(&output_json_str).map_err(|e| AppError::Internal(e.to_string()))?;
