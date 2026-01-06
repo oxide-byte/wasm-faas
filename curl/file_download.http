@@ -1,1 +1,1 @@
-GET http://localhost:3000/file/faas-modules/hello_faas.wasm
+GET http://localhost:3000/file/faas-modules/fibonacci_faas.wasm

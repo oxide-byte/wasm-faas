@@ -8,3 +8,8 @@ license = "MIT"
 crate-type = ["cdylib"]
 path = "faas.rs"
 name = "faas_exec"
+
+[dependencies]
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+wit-bindgen = { workspace = true }

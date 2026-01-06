@@ -1,12 +1,13 @@
 mod tools;
 mod api;
 mod error;
+mod test;
 
 use crate::api::bucket_api::{create_bucket, delete_bucket, list_bucket};
 use crate::api::exec_api::exec_wasm;
 use crate::api::file_api::{delete_file, download_file, upload_file};
 use crate::tools::s3::S3;
-use axum::routing::{get, post, put};
+use axum::routing::{post, put};
 use axum::Router;
 use std::sync::Arc;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -26,7 +27,7 @@ pub async fn main() {
     let app = Router::new()
         .route("/bucket/{bucket}", put(create_bucket).delete(delete_bucket).get(list_bucket))
         .route("/file/{bucket}/{key}", post(upload_file).get(download_file).delete(delete_file))
-        .route("/exec", get(exec_wasm))
+        .route("/exec", post(exec_wasm))
         .with_state(s3);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();

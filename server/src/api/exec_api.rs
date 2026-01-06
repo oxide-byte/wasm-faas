@@ -2,33 +2,78 @@ use crate::error::AppError;
 use crate::tools::s3::S3;
 use axum::extract::State;
 use axum::Json;
+use serde_json;
 use std::sync::Arc;
 use std::time::Instant;
-use wasmtime::{Config, Engine, Instance, Module, OptLevel, Store};
+use wasmtime::component::{Component, Linker, ResourceTable};
+use wasmtime::{Config, Engine, OptLevel, Store};
+use wasmtime_wasi::{WasiCtx, WasiCtxBuilder, WasiView, WasiCtxView};
 
-pub async fn exec_wasm(State(s3): State<Arc<S3>>) -> Result<Json<i32>, AppError> {
+struct ServerState {
+    ctx: WasiCtx,
+    table: ResourceTable,
+}
+
+impl WasiView for ServerState {
+    fn ctx(&mut self) -> WasiCtxView<'_> {
+        WasiCtxView {
+            ctx: &mut self.ctx,
+            table: &mut self.table,
+        }
+    }
+}
+
+wasmtime::component::bindgen!({
+    world: "faas-exec",
+    path: "../wit",
+});
+
+pub async fn exec_wasm(
+    State(s3): State<Arc<S3>>,
+    Json(payload): Json<serde_json::Value>,
+) -> Result<Json<serde_json::Value>, AppError> {
     let start = Instant::now();
 
-    let engine = Engine::new(
-        Config::new()
-            .debug_info(true)
-            .cranelift_opt_level(OptLevel::None),
-    )?;
+    let mut config = Config::new();
+    config.wasm_component_model(true);
+    config.async_support(false);
+    config.debug_info(true);
+    config.cranelift_opt_level(OptLevel::None);
 
-    let mut store = Store::new(&engine, ());
+    let engine = Engine::new(&config)?;
+
     let wasm_stream = s3.download_file("faas-modules", "fibonacci_faas.wasm").await?;
+
     let wasm_bytes = wasm_stream
         .collect()
         .await
         .map_err(|e| AppError::Internal(e.to_string()))?
         .to_vec();
 
-    let module = Module::from_binary(&engine, &wasm_bytes)?;
-    let instance = Instance::new(&mut store, &module, &[])?;
+    let component = Component::from_binary(&engine, &wasm_bytes)?;
 
-    let fib = instance.get_typed_func::<i32, i32>(&mut store, "faas_exec")?;
-    let result = fib.call(&mut store, 6);
+    let mut linker = Linker::new(&engine);
+    wasmtime_wasi::p2::add_to_linker_sync(&mut linker)?;
+
+    let mut store = Store::new(
+        &engine,
+        ServerState {
+            ctx: WasiCtxBuilder::new().inherit_stdout().build(),
+            table: ResourceTable::new(),
+        },
+    );
+
+    let bindings = FaasExec::instantiate(&mut store, &component, &linker)?;
+
+    let input_json =
+        serde_json::to_string(&payload).map_err(|e| AppError::Internal(e.to_string()))?;
+
+    let output_json_str = bindings.call_exec(&mut store, &input_json)?;
+
+    let output_json: serde_json::Value =
+        serde_json::from_str(&output_json_str).map_err(|e| AppError::Internal(e.to_string()))?;
+
     println!("Time {}ms", start.elapsed().as_millis());
 
-    Ok(Json::from(result?))
+    Ok(Json(output_json))
 }

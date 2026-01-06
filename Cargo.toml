@@ -1,6 +1,5 @@
-resolver = "2"
-
 [workspace]
+resolver = "3"
 members = [
     "server",
     "fibonacci-faas",

@@ -5,5 +5,5 @@ Content-Type: multipart/form-data; boundary=WebAppBoundary
 Content-Disposition: form-data; name="file"; filename="fibonacci_faas.wasm"
 Content-Type: application/wasm
 
-< ../target/wasm32-wasip1/release/faas_exec.wasm
+< ./target/wasm32-wasip1/release/fibonacci_faas.wasm
 --WebAppBoundary--

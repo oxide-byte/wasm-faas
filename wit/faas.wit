@@ -1,0 +1,5 @@
+package local:faas;
+
+world faas-exec {
+    export exec: func(input: string) -> string;
+}
