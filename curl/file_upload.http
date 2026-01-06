@@ -1,3 +1,15 @@
+### Upload Hello
+POST http://localhost:3000/file/faas-modules/hello_faas.wasm
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="file"; filename="hello_faas.wasm"
+Content-Type: application/wasm
+
+< ../target/wasm32-wasip1/release/hello_faas.wasm
+--WebAppBoundary--
+
+### Upload Fibonacci
 POST http://localhost:3000/file/faas-modules/fibonacci_faas.wasm
 Content-Type: multipart/form-data; boundary=WebAppBoundary
 
@@ -5,5 +17,5 @@ Content-Type: multipart/form-data; boundary=WebAppBoundary
 Content-Disposition: form-data; name="file"; filename="fibonacci_faas.wasm"
 Content-Type: application/wasm
 
-< ./target/wasm32-wasip1/release/fibonacci_faas.wasm
+< ../target/wasm32-wasip1/release/fibonacci_faas.wasm
 --WebAppBoundary--

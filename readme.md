@@ -21,6 +21,11 @@ curl -LO https://github.com/bytecodealliance/wasmtime/releases/latest/download/w
 ```
 
 ```shell
+cargo build -p hello-faas --target wasm32-wasip1 --release
+wasm-tools component new ./target/wasm32-wasip1/release/faas_exec.wasm -o ./target/wasm32-wasip1/release/hello_faas.wasm --adapt ./wasi_snapshot_preview1.reactor.wasm
+```
+
+```shell
 cargo build -p fibonacci-faas --target wasm32-wasip1 --release
 wasm-tools component new ./target/wasm32-wasip1/release/faas_exec.wasm -o ./target/wasm32-wasip1/release/fibonacci_faas.wasm --adapt ./wasi_snapshot_preview1.reactor.wasm
 ```

@@ -1,6 +1,6 @@
 use crate::error::AppError;
 use crate::tools::s3::S3;
-use axum::extract::State;
+use axum::extract::{Path, State};
 use axum::Json;
 use serde_json;
 use std::sync::Arc;
@@ -30,6 +30,7 @@ wasmtime::component::bindgen!({
 
 pub async fn exec_wasm(
     State(s3): State<Arc<S3>>,
+    Path((bucket, key)): Path<(String, String)>,
     Json(payload): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, AppError> {
     let start = Instant::now();
@@ -42,7 +43,7 @@ pub async fn exec_wasm(
 
     let engine = Engine::new(&config)?;
 
-    let wasm_stream = s3.download_file("faas-modules", "fibonacci_faas.wasm").await?;
+    let wasm_stream = s3.download_file(&bucket, &key).await?;
 
     let wasm_bytes = wasm_stream
         .collect()

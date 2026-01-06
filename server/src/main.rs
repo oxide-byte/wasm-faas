@@ -27,7 +27,7 @@ pub async fn main() {
     let app = Router::new()
         .route("/bucket/{bucket}", put(create_bucket).delete(delete_bucket).get(list_bucket))
         .route("/file/{bucket}/{key}", post(upload_file).get(download_file).delete(delete_file))
-        .route("/exec", post(exec_wasm))
+        .route("/exec/{bucket}/{key}", post(exec_wasm))
         .with_state(s3);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();

@@ -1,0 +1,15 @@
+[package]
+name = "hello-faas"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib"]
+path = "hello.rs"
+name = "faas_exec"
+
+[dependencies]
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+wit-bindgen = { workspace = true }

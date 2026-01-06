@@ -1,4 +1,13 @@
-POST http://localhost:3000/exec
+### Hello
+POST http://localhost:3000/exec/faas-modules/hello_faas.wasm
+Content-Type: application/json
+
+{
+  "name": "Toni"
+}
+
+### Fibonacci
+POST http://localhost:3000/exec/faas-modules/fibonacci_faas.wasm
 Content-Type: application/json
 
 {
