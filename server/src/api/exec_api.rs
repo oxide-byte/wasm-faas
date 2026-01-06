@@ -1,9 +1,12 @@
 use crate::error::AppError;
+use crate::tools::s3::S3;
+use axum::extract::State;
 use axum::Json;
+use std::sync::Arc;
 use std::time::Instant;
 use wasmtime::{Config, Engine, Instance, Module, OptLevel, Store};
 
-pub async fn exec_wasm() -> Result<Json<i32>, AppError> {
+pub async fn exec_wasm(State(s3): State<Arc<S3>>) -> Result<Json<i32>, AppError> {
     let start = Instant::now();
 
     let engine = Engine::new(
@@ -13,7 +16,14 @@ pub async fn exec_wasm() -> Result<Json<i32>, AppError> {
     )?;
 
     let mut store = Store::new(&engine, ());
-    let module = Module::from_file(&engine, "../target/wasm32-wasip1/release/faas_exec.wasm")?;
+    let wasm_stream = s3.download_file("faas-modules", "fibonacci_faas.wasm").await?;
+    let wasm_bytes = wasm_stream
+        .collect()
+        .await
+        .map_err(|e| AppError::Internal(e.to_string()))?
+        .to_vec();
+
+    let module = Module::from_binary(&engine, &wasm_bytes)?;
     let instance = Instance::new(&mut store, &module, &[])?;
 
     let fib = instance.get_typed_func::<i32, i32>(&mut store, "faas_exec")?;

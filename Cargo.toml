@@ -5,9 +5,6 @@ members = [
     "server",
     "fibonacci-faas",
 ]
-exclude = [
-    "demo-main"
-]
 
 [workspace.dependencies]
 
