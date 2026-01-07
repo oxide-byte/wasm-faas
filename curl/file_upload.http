@@ -19,3 +19,14 @@ Content-Type: application/wasm
 
 < ../target/wasm32-wasip1/release/fibonacci_faas.wasm
 --WebAppBoundary--
+
+### Upload s3
+POST http://localhost:3000/file/faas-modules/s3_faas.wasm
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="file"; filename="s3_faas.wasm"
+Content-Type: application/wasm
+
+< ../target/wasm32-wasip1/release/s3_faas.wasm
+--WebAppBoundary--

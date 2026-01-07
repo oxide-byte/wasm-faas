@@ -8,10 +8,12 @@ use std::time::Instant;
 use wasmtime::component::{Component, Linker, ResourceTable};
 use wasmtime::{Config, Engine, OptLevel, Store};
 use wasmtime_wasi::{WasiCtx, WasiCtxBuilder, WasiView, WasiCtxView};
+use wasmtime_wasi_http::{WasiHttpCtx, WasiHttpView};
 
 struct ServerState {
     ctx: WasiCtx,
     table: ResourceTable,
+    http: WasiHttpCtx,
 }
 
 impl WasiView for ServerState {
@@ -23,9 +25,22 @@ impl WasiView for ServerState {
     }
 }
 
+impl WasiHttpView for ServerState {
+    fn ctx(&mut self) -> &mut WasiHttpCtx {
+        &mut self.http
+    }
+
+    fn table(&mut self) -> &mut ResourceTable {
+        &mut self.table
+    }
+}
+
 wasmtime::component::bindgen!({
     world: "faas-exec",
     path: "../wit",
+    exports: {
+        "exec": async
+    }
 });
 
 pub async fn exec_wasm(
@@ -37,7 +52,7 @@ pub async fn exec_wasm(
 
     let mut config = Config::new();
     config.wasm_component_model(true);
-    config.async_support(false);
+    config.async_support(true);
     config.debug_info(true);
     config.cranelift_opt_level(OptLevel::None);
 
@@ -54,26 +69,24 @@ pub async fn exec_wasm(
     let component = Component::from_binary(&engine, &wasm_bytes)?;
 
     let mut linker = Linker::new(&engine);
-    wasmtime_wasi::p2::add_to_linker_sync(&mut linker)?;
+    wasmtime_wasi::p2::add_to_linker_async(&mut linker)?;
+    wasmtime_wasi_http::add_only_http_to_linker_async(&mut linker)?;
 
     let mut store = Store::new(
         &engine,
         ServerState {
             ctx: WasiCtxBuilder::new().inherit_stdout().build(),
             table: ResourceTable::new(),
+            http: WasiHttpCtx::new(),
         },
     );
 
-    let bindings = FaasExec::instantiate(&mut store, &component, &linker)?;
+    let bindings = FaasExec::instantiate_async(&mut store, &component, &linker).await?;
 
     let input_json =
         serde_json::to_string(&payload).map_err(|e| AppError::Internal(e.to_string()))?;
 
-    let output_json_str = tokio::task::spawn_blocking(move || {
-        bindings.call_exec(&mut store, &input_json)
-    })
-    .await
-    .map_err(|e| AppError::Internal(e.to_string()))??;
+    let output_json_str = bindings.call_exec(&mut store, &input_json).await?;
 
     let output_json: serde_json::Value =
         serde_json::from_str(&output_json_str).map_err(|e| AppError::Internal(e.to_string()))?;

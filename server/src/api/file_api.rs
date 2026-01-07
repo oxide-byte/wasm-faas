@@ -13,21 +13,26 @@ pub async fn upload_file(
     Path((bucket, key)): Path<(String, String)>,
     mut multipart: Multipart,
 ) -> Result<Json<String>, AppError> {
-    let mut data = Vec::new();
-
     while let Some(field) = multipart.next_field().await.map_err(|e| AppError::Internal(e.to_string()))? {
         let name = field.name().unwrap_or_default().to_string();
         if name == "file" {
-            data = field.bytes().await.map_err(|e: axum::extract::multipart::MultipartError| AppError::Internal(e.to_string()))?.to_vec();
+
+            // Set a reasonable size limit (50MB) to prevent memory issues
+            // TODO: handle larger files already > 1 MB (see S3 FAAS)
+            let data = field.bytes().await.map_err(|e| AppError::Internal(format!("Failed to read file data: {}", e)))?;
+            
+            // Check file size to prevent overly large uploads
+            if data.len() > 50 * 1024 * 1024 {
+                return Err(AppError::Internal("File too large. Maximum size is 50MB".to_string()));
+            }
+            
+            let body = aws_sdk_s3::primitives::ByteStream::from(data.to_vec());
+            s3.upload_file(&bucket, &key, body).await?;
+            return Ok(Json(format!("File {} uploaded to {}", key, bucket)));
         }
     }
 
-    if data.is_empty() {
-        return Err(AppError::Internal("Missing file in multipart".to_string()));
-    }
-
-    s3.upload_file(&bucket, &key, data.into()).await?;
-    Ok(Json(format!("File {} uploaded to {}", key, bucket)))
+    Err(AppError::Internal("Missing file in multipart".to_string()))
 }
 
 pub async fn download_file(

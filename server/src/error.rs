@@ -36,6 +36,7 @@ impl AppError {
 
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
+        println!("{:?}", self);
         let (status, error_message) = match self {
             AppError::S3Error(code, msg) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, format!("{}: {}", code, msg))

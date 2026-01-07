@@ -32,7 +32,15 @@ world faas-exec {
 }
 ```
 
-WASM files are lighter than Docker images in size. These examples are less than 200 KB, that have also an impact on download and improved cold start.
+see https://github.com/orgs/WebAssembly/repositories?q=cli
+
+Not all Cargo components are WASM compatible, this command can help to find components in the tree:
+
+```shell
+cargo tree -p s3-faas --target wasm32-wasip1 -i socket2
+```
+
+WASM files are lighter than Docker images in size. These examples are less than 200 KB, that have also an impact on download and improved cold start. The S3 with more dependencies 5MB.
 
 ![wasm_size.png](doc/wasm_size.png)
 
@@ -175,6 +183,11 @@ wasm-tools component new ./target/wasm32-wasip1/release/faas_exec.wasm -o ./targ
 ```shell
 cargo build -p fibonacci-faas --target wasm32-wasip1 --release
 wasm-tools component new ./target/wasm32-wasip1/release/faas_exec.wasm -o ./target/wasm32-wasip1/release/fibonacci_faas.wasm --adapt ./wasi_snapshot_preview1.reactor.wasm
+```
+
+```shell
+cargo build -p s3-faas --target wasm32-wasip1 --release
+wasm-tools component new ./target/wasm32-wasip1/release/faas_exec.wasm -o ./target/wasm32-wasip1/release/s3_faas.wasm --adapt ./wasi_snapshot_preview1.reactor.wasm
 ```
 
 ## CURL
